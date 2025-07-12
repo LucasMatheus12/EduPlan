@@ -1,6 +1,6 @@
 # 🎓 Sistema de Planejamento Curricular Universitário
 
-Aplicação web em React (JavaScript) para gerenciar a progressão curricular de alunos universitários.  
+Aplicação web em React TS para gerenciar a progressão curricular de alunos universitários.  
 Permite cadastro com universidade e polo, visualização e marcação de disciplinas com pré-requisitos, além de um planner de horários semanais.
 
 ---
