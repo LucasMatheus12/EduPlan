@@ -12,13 +12,16 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { Navigation } from "@/components/Navigation"
 import { User, Mail, BookOpen, Edit, Save, X } from "lucide-react"
-
-import { universities, cities, courses } from "@/data/curriculum"
+import { useUniversidades, useCursos } from "@/hooks/useApiData"
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+
+  // Usar apenas dados da API
+  const { universidades, loading: universitiesLoading } = useUniversidades()
+  const { cursos, loading: cursosLoading } = useCursos()
 
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
@@ -44,13 +47,21 @@ export default function ProfilePage() {
     })
   }, [user, router])
 
-  const handleSave = () => {
-    updateUser(formData)
-    setIsEditing(false)
-    toast({
-      title: "Perfil atualizado",
-      description: "Suas informações foram salvas com sucesso",
-    })
+  const handleSave = async () => {
+    try {
+      await updateUser(formData)
+      setIsEditing(false)
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram salvas com sucesso",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar",
+        description: "Ocorreu um erro ao salvar suas informações",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleCancel = () => {
@@ -78,6 +89,13 @@ export default function ProfilePage() {
       .toUpperCase()
       .slice(0, 2)
   }
+
+  // Garantir que universidades é um array válido e converter para strings
+  const validUniversidades = Array.isArray(universidades) ? universidades : []
+  const validCursos = Array.isArray(cursos) ? cursos : []
+
+  // Extrair polos únicos das universidades da API (mudado de cidade para polo)
+  const cities = [...new Set(validUniversidades.map((u) => String(u.polo)))]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -141,14 +159,15 @@ export default function ProfilePage() {
                     <Select
                       value={formData.university}
                       onValueChange={(value) => setFormData({ ...formData, university: value })}
+                      disabled={universitiesLoading}
                     >
                       <SelectTrigger className="text-lg">
-                        <SelectValue />
+                        <SelectValue placeholder="Selecione uma universidade" />
                       </SelectTrigger>
                       <SelectContent>
-                        {universities.map((university) => (
-                          <SelectItem key={university} value={university}>
-                            {university}
+                        {validUniversidades.map((universidade) => (
+                          <SelectItem key={universidade.id} value={String(universidade.nome)}>
+                            {String(universidade.nome)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -164,14 +183,18 @@ export default function ProfilePage() {
                     Cidade/Polo
                   </Label>
                   {isEditing ? (
-                    <Select value={formData.city} onValueChange={(value) => setFormData({ ...formData, city: value })}>
+                    <Select
+                      value={formData.city}
+                      onValueChange={(value) => setFormData({ ...formData, city: value })}
+                      disabled={universitiesLoading}
+                    >
                       <SelectTrigger className="text-lg">
-                        <SelectValue />
+                        <SelectValue placeholder="Selecione uma cidade" />
                       </SelectTrigger>
                       <SelectContent>
-                        {cities.map((city) => (
-                          <SelectItem key={city} value={city}>
-                            {city}
+                        {cities.map((cidade) => (
+                          <SelectItem key={cidade} value={cidade}>
+                            {cidade}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -190,14 +213,15 @@ export default function ProfilePage() {
                     <Select
                       value={formData.course}
                       onValueChange={(value) => setFormData({ ...formData, course: value })}
+                      disabled={cursosLoading}
                     >
                       <SelectTrigger className="text-lg">
-                        <SelectValue />
+                        <SelectValue placeholder="Selecione um curso" />
                       </SelectTrigger>
                       <SelectContent>
-                        {courses.map((course) => (
-                          <SelectItem key={course} value={course}>
-                            {course}
+                        {validCursos.map((curso) => (
+                          <SelectItem key={curso.id} value={String(curso.nome)}>
+                            {String(curso.nome)}
                           </SelectItem>
                         ))}
                       </SelectContent>
