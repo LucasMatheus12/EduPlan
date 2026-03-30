@@ -11,11 +11,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { Navigation } from "@/components/Navigation"
+import { PageHero } from "@/components/layout/PageHero"
 import { User, Mail, BookOpen, Edit, Save, X } from "lucide-react"
 import { useUniversidades, useCursos } from "@/hooks/useApiData"
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuth()
+  const { user, updateUser, loading: authLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
 
@@ -33,6 +34,7 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
+    if (authLoading) return
     if (!user) {
       router.push("/")
       return
@@ -45,7 +47,7 @@ export default function ProfilePage() {
       city: user.city,
       course: user.course,
     })
-  }, [user, router])
+  }, [user, authLoading, router])
 
   const handleSave = async () => {
     try {
@@ -77,6 +79,18 @@ export default function ProfilePage() {
     setIsEditing(false)
   }
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80">
+        <Navigation />
+        <div className="mx-auto w-full max-w-[min(100%,100rem)] px-3 py-8 text-center sm:px-5 lg:px-6">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+          <p className="text-slate-600">Carregando sessão...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!user) {
     return null
   }
@@ -98,18 +112,26 @@ export default function ProfilePage() {
   const cities = [...new Set(validUniversidades.map((u) => String(u.polo)))]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80">
       <Navigation />
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <Card className="shadow-lg">
-            <CardHeader className="text-center pb-6">
+      <div className="mx-auto w-full max-w-[min(100%,100rem)] px-3 py-8 sm:px-5 lg:px-6">
+        <PageHero
+          eyebrow="Conta"
+          title="Meu perfil"
+          description="Visualize e edite seus dados, instituição e curso vinculados ao planejamento."
+        />
+
+        <div className="mx-auto max-w-2xl">
+          <Card className="overflow-hidden rounded-3xl border-slate-200/80 shadow-xl shadow-slate-200/40">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-6 text-center">
               <div className="flex flex-col items-center space-y-4">
-                <Avatar className="w-24 h-24 bg-blue-600">
-                  <AvatarFallback className="text-white text-xl font-bold">{getInitials(user.name)}</AvatarFallback>
+                <Avatar className="h-24 w-24 border-4 border-white shadow-lg ring-2 ring-blue-100">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-600 text-xl font-bold text-white">
+                    {getInitials(user.name)}
+                  </AvatarFallback>
                 </Avatar>
-                <CardTitle className="text-2xl font-bold text-gray-900">Meu Perfil</CardTitle>
+                <CardTitle className="font-headline text-xl font-bold text-slate-900">Dados cadastrais</CardTitle>
               </div>
             </CardHeader>
 

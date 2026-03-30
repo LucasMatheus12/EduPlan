@@ -16,7 +16,6 @@ export interface User {
   // Sistema de status das disciplinas
   subjectStatuses: { [subjectId: number]: "concluida" | "em_andamento" | "pendente" }
   completedSubjects: number[] // Mantendo para compatibilidade (disciplinas concluídas)
-  schedule: { [key: string]: string }
 }
 
 interface RegisterData {
@@ -35,12 +34,11 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<boolean>
   logout: () => void
   updateUser: (
-    userData: Partial<Omit<User, "id" | "completedSubjects" | "schedule" | "subjectStatuses">>,
+    userData: Partial<Omit<User, "id" | "completedSubjects" | "subjectStatuses">>,
   ) => Promise<void>
   // Funções para gerenciar status das disciplinas
   updateSubjectStatus: (subjectId: number, status: "concluida" | "em_andamento" | "pendente") => Promise<void>
   removeSubjectStatus: (subjectId: number) => Promise<void>
-  updateSchedule: (day: string, time: string, subject: string) => void
   loading: boolean
 }
 
@@ -79,7 +77,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         courseId: apiUser.course,
         subjectStatuses: {},
         completedSubjects: [],
-        schedule: {},
       }
     } catch (error) {
       console.error("Erro ao converter ApiUser:", error)
@@ -104,14 +101,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const savedUser = localStorage.getItem("currentUser")
       const accessToken = localStorage.getItem("access_token")
+      const refreshToken = localStorage.getItem("refresh_token")
+      const hasSession = Boolean(accessToken || refreshToken)
 
-      if (savedUser && accessToken) {
+      if (hasSession) {
         try {
-          console.log("🔄 Inicializando autenticação...")
 
-          // Tentar buscar dados atualizados do usuário usando o token
           const apiUser = await apiService.getCurrentUser()
           const userDisciplinas = await apiService.getUsuarioDisciplinas(apiUser.id)
 
@@ -120,7 +116,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const fullUser = await convertApiUserToUser(apiUser)
           fullUser.subjectStatuses = subjectStatuses
           fullUser.completedSubjects = completedSubjects
-          fullUser.schedule = JSON.parse(localStorage.getItem(`schedule_${apiUser.id}`) || "{}")
 
           setUser(fullUser)
           console.log("✅ Usuário autenticado:", fullUser)
@@ -149,7 +144,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: user.email,
         }),
       )
-      localStorage.setItem(`schedule_${user.id}`, JSON.stringify(user.schedule))
     }
   }, [user])
 
@@ -174,7 +168,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const fullUser = await convertApiUserToUser(apiUser)
       fullUser.subjectStatuses = subjectStatuses
       fullUser.completedSubjects = completedSubjects
-      fullUser.schedule = JSON.parse(localStorage.getItem(`schedule_${apiUser.id}`) || "{}")
 
       setUser(fullUser)
       return true
@@ -251,14 +244,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setUser(null)
     localStorage.removeItem("currentUser")
-    if (user) {
-      localStorage.removeItem(`schedule_${user.id}`)
-    }
     apiService.logout()
   }
 
   const updateUser = async (
-    userData: Partial<Omit<User, "id" | "completedSubjects" | "schedule" | "subjectStatuses">>,
+    userData: Partial<Omit<User, "id" | "completedSubjects" | "subjectStatuses">>,
   ) => {
     if (!user) return
 
@@ -294,7 +284,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const updatedUser = await convertApiUserToUser(updatedApiUser)
       updatedUser.subjectStatuses = user.subjectStatuses
       updatedUser.completedSubjects = user.completedSubjects
-      updatedUser.schedule = user.schedule
 
       setUser(updatedUser)
     } catch (error) {
@@ -352,21 +341,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const updateSchedule = (day: string, time: string, subject: string) => {
-    if (!user) return
-
-    const scheduleKey = `${day}-${time}`
-    const newSchedule = { ...user.schedule }
-
-    if (subject.trim()) {
-      newSchedule[scheduleKey] = subject
-    } else {
-      delete newSchedule[scheduleKey]
-    }
-
-    setUser((prev) => (prev ? { ...prev, schedule: newSchedule } : null))
-  }
-
   return (
     <AuthContext.Provider
       value={{
@@ -377,7 +351,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateUser,
         updateSubjectStatus,
         removeSubjectStatus,
-        updateSchedule,
         loading,
       }}
     >

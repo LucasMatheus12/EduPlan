@@ -4,17 +4,27 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
-import { GraduationCap, Mail, Lock, BookOpen } from "lucide-react"
+import {
+  ArrowRight,
+  BadgeCheck,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  School,
+  Sparkles,
+} from "lucide-react"
+
+const HERO_IMAGE =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuAKHXjfJ_zxWjJSFMea1kSMb426COLrH5nfM9DKr6Y4mdGfhlEetOBe01VnZosTAl1Euh8gIg3nCMsMzSX7h61l7YoZLPc6qdiv4OFwiRPB3pjuVjokSU07PHGblH5e7pMT1gQ9zls2IWmGP5DlQi5LqJTG4yl0QOxOnPngjmQ8YREeWFztq97aBQ6AgaGnMFEXqFn32nu8KHBLGbnYyyeI3UmPwZaRPa0-mlrasfqIOCqCO96G4OgAog2MBPwG2aAMLzIn7secDTqW"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [remember, setRemember] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const { login } = useAuth()
@@ -36,11 +46,11 @@ export default function LoginPage() {
       } else {
         toast({
           title: "Erro no login",
-          description: "Email ou senha incorretos",
+          description: "E-mail ou senha incorretos",
           variant: "destructive",
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado",
@@ -52,115 +62,161 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Lado Esquerdo - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative z-10 flex flex-col items-center justify-center text-white p-12 text-center">
-          <div className="mb-8">
-            <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6 mx-auto">
-              <GraduationCap className="w-12 h-12 text-white" />
+    <main className="flex min-h-screen overflow-hidden bg-edu-surface font-sans text-edu-ink selection:bg-[#dbe1ff] selection:text-edu-primary">
+      {/* Painel esquerdo — marca e destaque */}
+      <section className="relative hidden w-1/2 items-center justify-center overflow-hidden bg-edu-primary p-12 lg:flex xl:w-7/12">
+        <div className="bg-academic-gradient absolute inset-0 z-10 opacity-90" aria-hidden />
+        <img
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-40 mix-blend-overlay"
+          src={HERO_IMAGE}
+        />
+        <div className="relative z-20 w-full max-w-2xl">
+          <div className="mb-16">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-lg">
+                <School className="h-7 w-7 text-edu-primary" strokeWidth={2} />
+              </div>
+              <h1 className="font-headline text-4xl font-extrabold tracking-tight text-white">EduPlan</h1>
             </div>
-            <h1 className="text-4xl font-bold mb-4">EduPlan</h1>
-            <p className="text-xl text-blue-100 mb-8 max-w-md">
-              Seu planejador acadêmico inteligente para organizar disciplinas e horários
-            </p>
+            <h2 className="font-headline text-5xl font-black leading-tight tracking-tight text-white xl:text-6xl">
+              Arquitetando o <br />
+              <span className="text-edu-secondary-tint">futuro da aprendizagem.</span>
+            </h2>
           </div>
-
-          <div className="flex items-center gap-4 text-blue-100">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              <span>Planejamento Inteligente</span>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="glass-card-edu rounded-edu border border-white/10 p-6">
+              <Sparkles className="mb-4 block h-7 w-7 text-white" strokeWidth={1.75} />
+              <h3 className="mb-1 font-bold text-white">Currículo inteligente</h3>
+              <p className="text-sm text-white/70">
+                Planejamento do seu percurso acadêmico com foco e clareza.
+              </p>
             </div>
-            <div className="w-1 h-1 bg-blue-200 rounded-full"></div>
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-5 h-5" />
-              <span>Múltiplas Universidades</span>
+            <div className="glass-card-edu rounded-edu border border-white/10 p-6">
+              <BadgeCheck className="mb-4 block h-7 w-7 text-white" strokeWidth={1.75} />
+              <h3 className="mb-1 font-bold text-white">Acompanhamento de formação</h3>
+              <p className="text-sm text-white/70">
+                Controle em tempo real de disciplinas e requisitos do curso.
+              </p>
             </div>
           </div>
         </div>
+        <div className="absolute -bottom-20 -left-20 z-10 h-96 w-96 rounded-full bg-white/5 blur-3xl" aria-hidden />
+      </section>
 
-        {/* Elementos decorativos */}
-        <div className="absolute top-20 left-20 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
-        <div className="absolute bottom-20 right-20 w-40 h-40 bg-white/5 rounded-full blur-xl"></div>
-      </div>
-
-      {/* Lado Direito - Formulário */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
+      {/* Formulário */}
+      <section className="relative flex w-full items-center justify-center bg-edu-lowest p-8 md:p-16 xl:w-5/12 xl:p-24 lg:w-1/2">
         <div className="w-full max-w-md">
-          {/* Logo mobile */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4 mx-auto">
-              <GraduationCap className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">EduPlan</h1>
+          <div className="mb-12 flex items-center gap-2 lg:hidden">
+            <School className="h-8 w-8 text-edu-primary" strokeWidth={2} />
+            <span className="font-headline text-2xl font-black text-edu-primary">EduPlan</span>
           </div>
 
-          <Card className="shadow-xl border-0">
-            <CardHeader className="text-center pb-6">
-              <CardTitle className="text-2xl font-bold text-gray-900">Bem-vindo de volta</CardTitle>
-              <p className="text-gray-600 mt-2">Entre com suas credenciais para acessar sua conta</p>
-            </CardHeader>
+          <header className="mb-10">
+            <h2 className="font-headline mb-2 text-3xl font-extrabold text-edu-ink">Bem-vindo de volta</h2>
+            <p className="font-medium text-edu-ink-muted">Continue sua jornada acadêmica com o EduPlan.</p>
+          </header>
 
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                    Email
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-11 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <label className="ml-1 block text-sm font-semibold text-edu-ink-muted" htmlFor="email">
+                E-mail
+              </label>
+              <div className="group relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                  <Mail className="h-5 w-5 text-edu-outline transition-colors group-focus-within:text-edu-primary" />
                 </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="nome@universidade.edu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="block w-full rounded-edu border-none bg-edu-highest py-4 pl-11 pr-4 font-medium text-edu-ink placeholder:text-edu-outline transition-all focus:bg-edu-lowest focus:ring-2 focus:ring-edu-primary/30"
+                  required
+                />
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                    Senha
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-11 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
+            <div className="space-y-2">
+              <div className="ml-1 flex items-center justify-between">
+                <label className="block text-sm font-semibold text-edu-ink-muted" htmlFor="password">
+                  Senha
+                </label>
+                <span className="cursor-not-allowed text-xs font-bold text-edu-primary opacity-70">
+                  Esqueceu a senha?
+                </span>
+              </div>
+              <div className="group relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                  <Lock className="h-5 w-5 text-edu-outline transition-colors group-focus-within:text-edu-primary" />
                 </div>
-              </CardContent>
-
-              <CardFooter className="flex flex-col space-y-4 pt-6">
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
-                  disabled={isLoading}
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="block w-full rounded-edu border-none bg-edu-highest py-4 pl-11 pr-12 font-medium text-edu-ink placeholder:text-edu-outline transition-all focus:bg-edu-lowest focus:ring-2 focus:ring-edu-primary/30"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-edu-outline hover:text-edu-ink-muted"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                 >
-                  {isLoading ? "Entrando..." : "Entrar"}
-                </Button>
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
 
-                <div className="text-center text-sm text-gray-600">
-                  Não tem uma conta?{" "}
-                  <Link href="/register" className="text-blue-600 hover:text-blue-800 font-medium transition-colors">
-                    Criar Conta
-                  </Link>
-                </div>
-              </CardFooter>
-            </form>
-          </Card>
+            <div className="flex items-center px-1">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="h-5 w-5 rounded border-edu-outline-soft bg-edu-highest text-edu-primary focus:ring-edu-primary/30"
+              />
+              <label htmlFor="remember-me" className="ml-3 block text-sm font-medium text-edu-ink-muted">
+                Manter-me conectado
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="group flex w-full items-center justify-center gap-2 rounded-full bg-academic-gradient py-4 px-6 font-headline text-lg font-bold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl active:scale-95 disabled:opacity-70"
+            >
+              {isLoading ? "Entrando..." : "Entrar"}
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </button>
+          </form>
+
+          <footer className="mt-12 text-center">
+            <p className="font-medium text-edu-ink-muted">
+              Não tem uma conta?{" "}
+              <Link
+                href="/register"
+                className="ml-1 font-bold text-edu-primary underline-offset-4 hover:underline"
+              >
+                Criar conta
+              </Link>
+            </p>
+          </footer>
         </div>
-      </div>
-    </div>
+
+        <div className="absolute bottom-8 left-8 right-8 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-edu-outline opacity-50">
+          <span>EduPlan Acadêmico</span>
+          <span>Privacidade e termos</span>
+        </div>
+      </section>
+    </main>
   )
 }

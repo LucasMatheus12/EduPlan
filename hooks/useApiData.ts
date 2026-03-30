@@ -96,11 +96,15 @@ export function useDisciplinas(cursoId?: number | null) {
         const safeData = Array.isArray(data)
           ? data.map((disciplina) => ({
               ...disciplina,
-              // Normalizar pré-requisitos - usar pre_requisitos se existir, senão preRequisitos
               preRequisitos: Array.isArray(disciplina.pre_requisitos)
                 ? disciplina.pre_requisitos
                 : Array.isArray(disciplina.preRequisitos)
                   ? disciplina.preRequisitos
+                  : [],
+              coRequisitos: Array.isArray(disciplina.co_requisitos)
+                ? disciplina.co_requisitos
+                : Array.isArray(disciplina.coRequisitos)
+                  ? disciplina.coRequisitos
                   : [],
             }))
           : []
@@ -135,6 +139,11 @@ export function useDisciplinas(cursoId?: number | null) {
               ? disciplina.pre_requisitos
               : Array.isArray(disciplina.preRequisitos)
                 ? disciplina.preRequisitos
+                : [],
+            coRequisitos: Array.isArray(disciplina.co_requisitos)
+              ? disciplina.co_requisitos
+              : Array.isArray(disciplina.coRequisitos)
+                ? disciplina.coRequisitos
                 : [],
           }))
         : []

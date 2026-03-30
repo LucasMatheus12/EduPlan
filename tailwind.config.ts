@@ -19,7 +19,26 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
+        headline: ["var(--font-manrope)", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       colors: {
+        edu: {
+          surface: "#f7f9fb",
+          background: "#f7f9fb",
+          lowest: "#ffffff",
+          low: "#f2f4f6",
+          high: "#e6e8ea",
+          highest: "#e0e3e5",
+          ink: "#191c1e",
+          "ink-muted": "#434655",
+          primary: "#004ac6",
+          "primary-bright": "#2563eb",
+          "secondary-tint": "#acbfff",
+          outline: "#737686",
+          "outline-soft": "#c3c6d7",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -58,6 +77,9 @@ const config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        edu: "1rem",
+        "edu-lg": "2rem",
+        "edu-xl": "3rem",
       },
       keyframes: {
         "accordion-down": {

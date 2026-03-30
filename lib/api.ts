@@ -28,8 +28,12 @@ export interface ApiDisciplina {
   nome: string
   periodo: number
   curso: number
-  pre_requisitos: number[] // Mudando para snake_case como na API
-  preRequisitos?: number[] // Mantendo para compatibilidade
+  carga_horaria?: number | null
+  creditos?: number | null
+  pre_requisitos?: number[]
+  co_requisitos?: number[]
+  preRequisitos?: number[]
+  coRequisitos?: number[]
 }
 
 export interface ApiUsuarioDisciplina {
@@ -65,6 +69,30 @@ export interface UpdateStatusRequest {
   disciplina: number
 }
 
+export type AgendaLocationType = "physical" | "online" | "lab" | "classroom"
+export type AgendaTheme = "blue" | "orange"
+
+export interface ApiAgendaItem {
+  id: number
+  titulo: string
+  local_nome: string
+  tipo_local: AgendaLocationType
+  dia_semana: number
+  hora_inicio: string
+  hora_fim: string
+  tema: AgendaTheme
+}
+
+export interface AgendaItemPayload {
+  titulo: string
+  local_nome?: string
+  tipo_local: AgendaLocationType
+  dia_semana: number
+  hora_inicio: string
+  hora_fim: string
+  tema: AgendaTheme
+}
+
 class ApiService {
   private accessToken: string | null = null
   private refreshToken: string | null = null
@@ -72,9 +100,15 @@ class ApiService {
   constructor() {
     // Recuperar tokens do localStorage se existirem
     if (typeof window !== "undefined") {
-      this.accessToken = localStorage.getItem("access_token")
-      this.refreshToken = localStorage.getItem("refresh_token")
+      this.syncTokensFromStorage()
     }
+  }
+
+  /** Sempre ler do localStorage antes de usar tokens (Next.js/hidratação podem deixar a memória dessincronizada). */
+  private syncTokensFromStorage(): void {
+    if (typeof window === "undefined") return
+    this.accessToken = localStorage.getItem("access_token")
+    this.refreshToken = localStorage.getItem("refresh_token")
   }
 
   private getAuthHeaders(): HeadersInit {
@@ -82,6 +116,7 @@ class ApiService {
       "Content-Type": "application/json",
     }
 
+    this.syncTokensFromStorage()
     if (this.accessToken) {
       headers["Authorization"] = `Bearer ${this.accessToken}`
     }
@@ -90,6 +125,7 @@ class ApiService {
   }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    this.syncTokensFromStorage()
     const url = `${API_BASE_URL}${endpoint}`
 
     console.log(`API Request: ${options?.method || "GET"} ${url}`)
@@ -170,6 +206,7 @@ class ApiService {
   }
 
   private async refreshAccessToken(): Promise<boolean> {
+    this.syncTokensFromStorage()
     if (!this.refreshToken) return false
 
     try {
@@ -265,6 +302,13 @@ class ApiService {
   }
 
   async getCurrentUser(): Promise<ApiUser> {
+    this.syncTokensFromStorage()
+    if (!this.accessToken && this.refreshToken) {
+      const refreshed = await this.refreshAccessToken()
+      if (!refreshed) {
+        throw new Error("Sessão expirada")
+      }
+    }
     if (!this.accessToken) {
       throw new Error("Não há token de acesso")
     }
@@ -353,6 +397,30 @@ class ApiService {
 
   async deleteUsuarioDisciplina(id: number): Promise<void> {
     return this.request<void>(`/api/usuario-disciplinas/${id}/`, {
+      method: "DELETE",
+    })
+  }
+
+  async getAgendaItens(): Promise<ApiAgendaItem[]> {
+    return this.request<ApiAgendaItem[]>("/api/agenda-itens/")
+  }
+
+  async createAgendaItem(data: AgendaItemPayload): Promise<ApiAgendaItem> {
+    return this.request<ApiAgendaItem>("/api/agenda-itens/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateAgendaItem(id: number, data: Partial<AgendaItemPayload>): Promise<ApiAgendaItem> {
+    return this.request<ApiAgendaItem>(`/api/agenda-itens/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteAgendaItem(id: number): Promise<void> {
+    return this.request<void>(`/api/agenda-itens/${id}/`, {
       method: "DELETE",
     })
   }

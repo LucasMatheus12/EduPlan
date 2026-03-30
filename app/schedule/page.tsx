@@ -1,153 +1,64 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/contexts/AuthContext"
 import { Navigation } from "@/components/Navigation"
-import { useToast } from "@/hooks/use-toast"
-import { Calendar, Clock, Save } from "lucide-react"
-
-const timeSlots = [
-  "07:00",
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-  "20:00",
-  "21:00",
-  "22:00",
-]
-
-const weekDays = [
-  { key: "monday", label: "Segunda" },
-  { key: "tuesday", label: "Terça" },
-  { key: "wednesday", label: "Quarta" },
-  { key: "thursday", label: "Quinta" },
-  { key: "friday", label: "Sexta" },
-]
+import { PageHero } from "@/components/layout/PageHero"
+import { WeeklyAgenda } from "@/components/schedule/WeeklyAgenda"
+import { useAuth } from "@/contexts/AuthContext"
+import { Calendar } from "lucide-react"
 
 export default function SchedulePage() {
-  const { user, updateSchedule } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const { toast } = useToast()
-  const [localSchedule, setLocalSchedule] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
+    if (authLoading) return
     if (!user) {
       router.push("/")
-      return
     }
-    setLocalSchedule(user.schedule || {})
-  }, [user, router])
+  }, [user, authLoading, router])
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80">
+        <Navigation />
+        <div className="mx-auto w-full max-w-[min(100%,100rem)] px-3 py-8 text-center sm:px-5 lg:px-6">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+          <p className="text-slate-600">Carregando sessão...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!user) {
     return null
   }
 
-  const handleScheduleChange = (day: string, time: string, value: string) => {
-    const key = `${day}-${time}`
-    setLocalSchedule((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
-  }
-
-  const handleSave = () => {
-    Object.entries(localSchedule).forEach(([key, value]) => {
-      const [day, time] = key.split("-")
-      updateSchedule(day, time, value)
-    })
-
-    toast({
-      title: "Horários salvos",
-      description: "Sua grade de horários foi atualizada com sucesso",
-    })
-  }
-
-  const getScheduleValue = (day: string, time: string) => {
-    const key = `${day}-${time}`
-    return localSchedule[key] || ""
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80">
       <Navigation />
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-              <Calendar className="w-8 h-8" />
-              Grade de Horários
-            </h1>
-            <p className="text-gray-600">Organize seus horários de aula da semana</p>
+      <div className="mx-auto w-full max-w-[min(100%,100rem)] px-3 py-8 sm:px-5 lg:px-6">
+        <PageHero
+          eyebrow="Organização"
+          title="Agenda semanal"
+          description="Grade em estilo acadêmico: visualize aulas por dia e faixa de horário. Os dados são salvos na sua conta (API)."
+        >
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Calendar className="h-5 w-5 shrink-0 text-blue-600" aria-hidden />
+            <span>Segunda a sábado · clique em uma aula para editar ou use &quot;Adicionar&quot; em cada célula.</span>
           </div>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-            <Save className="w-4 h-4 mr-2" />
-            Salvar Horários
-          </Button>
-        </div>
+        </PageHero>
 
-        <Card className="shadow-lg overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Grade Semanal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b">
-                    <th className="p-4 text-left font-semibold text-gray-900 min-w-[100px]">Horário</th>
-                    {weekDays.map((day) => (
-                      <th key={day.key} className="p-4 text-center font-semibold text-gray-900 min-w-[150px]">
-                        {day.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {timeSlots.map((time) => (
-                    <tr key={time} className="border-b hover:bg-gray-50">
-                      <td className="p-4 font-medium text-gray-700 bg-gray-50">{time}</td>
-                      {weekDays.map((day) => (
-                        <td key={`${day.key}-${time}`} className="p-2">
-                          <Input
-                            value={getScheduleValue(day.key, time)}
-                            onChange={(e) => handleScheduleChange(day.key, time, e.target.value)}
-                            placeholder="Disciplina"
-                            className="text-center text-sm border-gray-200 focus:border-blue-400"
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <WeeklyAgenda userId={user.id} />
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h3 className="font-semibold text-blue-900 mb-2">Dicas:</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Clique em qualquer célula para adicionar ou editar uma disciplina</li>
-            <li>• Deixe em branco os horários livres</li>
-            <li>• Use nomes curtos para as disciplinas (ex: "Cálculo I", "Prog Web")</li>
-            <li>• Não esqueça de clicar em "Salvar Horários" após fazer alterações</li>
+        <div className="mt-8 rounded-2xl border border-slate-200/70 bg-white/90 p-5 text-sm text-slate-600 shadow-sm">
+          <p className="font-semibold text-slate-800">Como usar</p>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-slate-600">
+            <li>Cada linha é uma faixa de tempo; o intervalo central separa manhã e tarde.</li>
+            <li>Cartões azuis ou laranja indicam o tema escolhido; o ícone mostra o tipo de local.</li>
+            <li>Horários podem ser ajustados no formulário — a aula aparece em todas as faixas em que o intervalo coincidir.</li>
           </ul>
         </div>
       </div>

@@ -4,18 +4,51 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { useUniversidades, useCursos } from "@/hooks/useApiData"
-import { ApiTest } from "@/components/ApiTest"
-import { GraduationCap, User, Mail, Lock, BookOpen } from "lucide-react"
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  BookOpen,
+  Lock,
+  Mail,
+  School,
+  Sparkles,
+  User,
+} from "lucide-react"
+
+const HERO_IMAGE =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuAKHXjfJ_zxWjJSFMea1kSMb426COLrH5nfM9DKr6Y4mdGfhlEetOBe01VnZosTAl1Euh8gIg3nCMsMzSX7h61l7YoZLPc6qdiv4OFwiRPB3pjuVjokSU07PHGblH5e7pMT1gQ9zls2IWmGP5DlQi5LqJTG4yl0QOxOnPngjmQ8YREeWFztq97aBQ6AgaGnMFEXqFn32nu8KHBLGbnYyyeI3UmPwZaRPa0-mlrasfqIOCqCO96G4OgAog2MBPwG2aAMLzIn7secDTqW"
+
+const inputClassName =
+  "block w-full rounded-edu border-none bg-edu-highest py-4 pl-11 pr-4 font-medium text-edu-ink placeholder:text-edu-outline transition-all focus:bg-edu-lowest focus:ring-2 focus:ring-edu-primary/30"
+
+const selectTriggerClassName =
+  "h-auto min-h-[3.25rem] w-full rounded-edu border-none bg-edu-highest py-4 pl-11 pr-10 text-left font-medium text-edu-ink focus:ring-2 focus:ring-edu-primary/30 focus:ring-offset-0 [&>span]:line-clamp-1"
+
+const STEP_COPY = [
+  {
+    title: "Seus dados",
+    description: "Como devemos te chamar e onde enviar avisos.",
+  },
+  {
+    title: "Sua formação",
+    description: "Universidade, polo e curso para personalizar o planejamento.",
+  },
+  {
+    title: "Segurança",
+    description: "Defina uma senha para proteger sua conta.",
+  },
+] as const
+
+const TOTAL_STEPS = STEP_COPY.length
 
 export default function RegisterPage() {
+  const [step, setStep] = useState(0)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -31,23 +64,83 @@ export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
 
-  // Usar os hooks da API
   const { universidades, loading: universitiesLoading, error: universitiesError } = useUniversidades()
   const { cursos, loading: cursosLoading, error: cursosError } = useCursos()
 
-  console.log("🔍 Register Page - Universidades:", universidades)
-  console.log("🔍 Register Page - Cursos:", cursos)
-  console.log("🔍 Register Page - Form Data:", formData)
+  const validUniversidades = Array.isArray(universidades) ? universidades : []
+  const validCursos = Array.isArray(cursos) ? cursos : []
+
+  const uniqueUniversityNames = [...new Set(validUniversidades.map((u) => String(u.nome)).filter(Boolean))]
+
+  const selectedUniversidade = validUniversidades.find(
+    (u) => String(u.nome) === formData.university && String(u.polo) === formData.city,
+  )
+
+  const availableCourses = selectedUniversidade
+    ? validCursos.filter((curso) => {
+        const cursoUnivId = typeof curso.universidade === "object" ? curso.universidade.id : curso.universidade
+        return cursoUnivId === selectedUniversidade.id
+      })
+    : []
+
+  const emailLooksValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+
+  const validateStep = (s: number): boolean => {
+    if (s === 0) {
+      if (!formData.name.trim()) {
+        toast({ title: "Campo obrigatório", description: "Informe seu nome completo.", variant: "destructive" })
+        return false
+      }
+      if (!emailLooksValid(formData.email)) {
+        toast({ title: "E-mail inválido", description: "Digite um e-mail válido.", variant: "destructive" })
+        return false
+      }
+      return true
+    }
+    if (s === 1) {
+      if (!formData.university || !formData.city || !formData.course) {
+        toast({
+          title: "Formação incompleta",
+          description: "Selecione universidade, polo e curso.",
+          variant: "destructive",
+        })
+        return false
+      }
+      return true
+    }
+    return true
+  }
+
+  const goNext = () => {
+    if (!validateStep(step)) return
+    setStep((x) => Math.min(x + 1, TOTAL_STEPS - 1))
+  }
+
+  const goBack = () => {
+    setStep((x) => Math.max(x - 1, 0))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    console.log("📝 Form submitted with data:", formData)
+    if (step < TOTAL_STEPS - 1) {
+      goNext()
+      return
+    }
 
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Erro no cadastro",
         description: "As senhas não coincidem",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Senha curta",
+        description: "Use pelo menos 6 caracteres.",
         variant: "destructive",
       })
       return
@@ -65,19 +158,15 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      console.log("🚀 Calling register function...")
-
       const success = await register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        confirmPassword: formData.confirmPassword, // Passando confirmPassword
+        confirmPassword: formData.confirmPassword,
         university: formData.university,
         city: formData.city,
         course: formData.course,
       })
-
-      console.log("📊 Register result:", success)
 
       if (success) {
         toast({
@@ -92,8 +181,7 @@ export default function RegisterPage() {
           variant: "destructive",
         })
       }
-    } catch (error) {
-      console.error("❌ Register error:", error)
+    } catch {
       toast({
         title: "Erro no cadastro",
         description: "Ocorreu um erro inesperado. Tente novamente.",
@@ -104,325 +192,373 @@ export default function RegisterPage() {
     }
   }
 
-  // Garantir que universidades é um array válido e converter para strings
-  const validUniversidades = Array.isArray(universidades) ? universidades : []
-  const validCursos = Array.isArray(cursos) ? cursos : []
-
-  // Extrair nomes únicos das universidades - garantindo que são strings
-  const uniqueUniversityNames = [...new Set(validUniversidades.map((u) => String(u.nome)).filter(Boolean))]
-
-  // Filtrar cursos baseado na universidade e cidade selecionadas
-  const selectedUniversidade = validUniversidades.find(
-    (u) => String(u.nome) === formData.university && String(u.polo) === formData.city,
-  )
-
-  const availableCourses = selectedUniversidade
-    ? validCursos.filter((curso) => {
-        // Lidar com universidade como objeto ou ID
-        const cursoUnivId = typeof curso.universidade === "object" ? curso.universidade.id : curso.universidade
-        return cursoUnivId === selectedUniversidade.id
-      })
-    : []
-
-  console.log("🎓 Available Courses:", availableCourses)
-  console.log("🔍 Filtering logic:", {
-    hasUniversity: !!formData.university,
-    hasCity: !!formData.city,
-    selectedUniversidade,
-    totalCursos: validCursos.length,
-    filteredCursos: availableCourses.length,
-    filterCriteria: {
-      university: formData.university,
-      city: formData.city,
-    },
-  })
+  const stepInfo = STEP_COPY[step]
+  const isLastStep = step === TOTAL_STEPS - 1
+  const blockActions = isLoading || universitiesLoading || cursosLoading
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        {/* Componente de teste da API */}
-        <ApiTest />
-
-        <Card className="w-full max-w-md mx-auto shadow-xl">
-          <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-white" />
+    <main className="flex min-h-screen overflow-hidden bg-edu-surface font-sans text-edu-ink selection:bg-[#dbe1ff] selection:text-edu-primary">
+      <section className="relative hidden w-1/2 items-center justify-center overflow-hidden bg-edu-primary p-12 lg:flex xl:w-7/12">
+        <div className="bg-academic-gradient absolute inset-0 z-10 opacity-90" aria-hidden />
+        <img
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-40 mix-blend-overlay"
+          src={HERO_IMAGE}
+        />
+        <div className="relative z-20 w-full max-w-2xl">
+          <div className="mb-16">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-lg">
+                <School className="h-7 w-7 text-edu-primary" strokeWidth={2} />
+              </div>
+              <h1 className="font-headline text-4xl font-extrabold tracking-tight text-white">EduPlan</h1>
             </div>
-            <CardTitle className="text-2xl font-bold text-gray-900">Criar Conta</CardTitle>
-            <CardDescription className="text-gray-600">Preencha os dados para criar sua conta</CardDescription>
-          </CardHeader>
+            <h2 className="font-headline text-5xl font-black leading-tight tracking-tight text-white xl:text-6xl">
+              Comece sua jornada <br />
+              <span className="text-edu-secondary-tint">no planejamento acadêmico.</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="glass-card-edu rounded-edu border border-white/10 p-6">
+              <Sparkles className="mb-4 block h-7 w-7 text-white" strokeWidth={1.75} />
+              <h3 className="mb-1 font-bold text-white">Perfil completo</h3>
+              <p className="text-sm text-white/70">Universidade, polo e curso alinhados à sua realidade.</p>
+            </div>
+            <div className="glass-card-edu rounded-edu border border-white/10 p-6">
+              <BadgeCheck className="mb-4 block h-7 w-7 text-white" strokeWidth={1.75} />
+              <h3 className="mb-1 font-bold text-white">Conta segura</h3>
+              <p className="text-sm text-white/70">Acesso personalizado ao seu painel e grade curricular.</p>
+            </div>
+          </div>
+        </div>
+        <div className="absolute -bottom-20 -left-20 z-10 h-96 w-96 rounded-full bg-white/5 blur-3xl" aria-hidden />
+      </section>
 
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">
-                  Nome Completo
-                </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Seu nome completo"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="pl-10"
-                    required
-                  />
+      <section className="relative flex w-full flex-1 flex-col overflow-y-auto bg-edu-lowest p-8 md:p-16 xl:w-5/12 xl:p-24 lg:w-1/2">
+        <div className="mx-auto w-full max-w-md flex-1 py-4">
+          <div className="mb-8 flex items-center gap-2 lg:hidden">
+            <School className="h-8 w-8 text-edu-primary" strokeWidth={2} />
+            <span className="font-headline text-2xl font-black text-edu-primary">EduPlan</span>
+          </div>
+
+          <div className="mb-8" role="navigation" aria-label="Progresso do cadastro">
+            <div className="mb-3 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-edu-outline">
+              <span>
+                Passo {step + 1} de {TOTAL_STEPS}
+              </span>
+              <span className="normal-case text-edu-ink-muted">{Math.round(((step + 1) / TOTAL_STEPS) * 100)}%</span>
+            </div>
+            <div className="flex gap-2">
+              {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 flex-1 rounded-full transition-colors ${
+                    i <= step ? "bg-edu-primary" : "bg-edu-high"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <header className="mb-8">
+            <h2 className="font-headline mb-2 text-3xl font-extrabold text-edu-ink">{stepInfo.title}</h2>
+            <p className="font-medium text-edu-ink-muted">{stepInfo.description}</p>
+          </header>
+
+          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+            {step === 0 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="ml-1 text-sm font-semibold text-edu-ink-muted">
+                    Nome completo
+                  </Label>
+                  <div className="group relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <User className="h-5 w-5 text-edu-outline transition-colors group-focus-within:text-edu-primary" />
+                    </div>
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      autoComplete="name"
+                      placeholder="Seu nome completo"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className={inputClassName}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="pl-10"
-                    required
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="ml-1 text-sm font-semibold text-edu-ink-muted">
+                    E-mail
+                  </Label>
+                  <div className="group relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <Mail className="h-5 w-5 text-edu-outline transition-colors group-focus-within:text-edu-primary" />
+                    </div>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="nome@universidade.edu"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className={inputClassName}
+                    />
+                  </div>
                 </div>
-              </div>
+              </>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="university" className="text-sm font-medium">
-                  Universidade ({uniqueUniversityNames.length} disponíveis)
-                </Label>
-                <div className="relative">
-                  <BookOpen className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
-                  <Select
-                    value={formData.university}
-                    onValueChange={(value) => {
-                      console.log("🏫 University selected:", value)
-                      setFormData({ ...formData, university: value, city: "", course: "" })
-                    }}
-                    disabled={universitiesLoading}
-                  >
-                    <SelectTrigger className="pl-10">
-                      <SelectValue
-                        placeholder={
-                          universitiesLoading
-                            ? "Carregando universidades..."
-                            : uniqueUniversityNames.length === 0
-                              ? "Nenhuma universidade encontrada"
-                              : "Selecione sua universidade"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {uniqueUniversityNames.length > 0 ? (
-                        uniqueUniversityNames.map((nomeUniversidade) => (
-                          <SelectItem key={nomeUniversidade} value={nomeUniversidade}>
-                            {nomeUniversidade}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-data" disabled>
-                          {universitiesLoading ? "Carregando..." : "Nenhuma universidade encontrada"}
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {universitiesError && <p className="text-sm text-red-600">{String(universitiesError)}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="city" className="text-sm font-medium">
-                  Cidade/Polo (
-                  {formData.university
-                    ? validUniversidades.filter((u) => String(u.nome) === formData.university).length
-                    : 0}{" "}
-                  disponíveis)
-                </Label>
-                <div className="relative">
-                  <BookOpen className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
-                  <Select
-                    value={formData.city}
-                    onValueChange={(value) => {
-                      console.log("🏙️ City selected:", value)
-                      setFormData({ ...formData, city: value, course: "" })
-                    }}
-                    disabled={universitiesLoading || !formData.university}
-                  >
-                    <SelectTrigger className="pl-10">
-                      <SelectValue
-                        placeholder={
-                          !formData.university
-                            ? "Selecione uma universidade primeiro"
-                            : universitiesLoading
-                              ? "Carregando cidades..."
-                              : "Selecione sua cidade/polo"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData.university ? (
-                        validUniversidades
-                          .filter((u) => String(u.nome) === formData.university)
-                          .map((universidade) => (
-                            <SelectItem
-                              key={`${universidade.id}-${universidade.polo}`}
-                              value={String(universidade.polo)}
-                            >
-                              {String(universidade.polo)}
+            {step === 1 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="university" className="ml-1 text-sm font-semibold text-edu-ink-muted">
+                    Universidade
+                    <span className="ml-1 font-normal text-edu-outline">({uniqueUniversityNames.length})</span>
+                  </Label>
+                  <div className="group relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-4">
+                      <BookOpen className="h-5 w-5 text-edu-outline transition-colors group-focus-within:text-edu-primary" />
+                    </div>
+                    <Select
+                      value={formData.university}
+                      onValueChange={(value) => setFormData({ ...formData, university: value, city: "", course: "" })}
+                      disabled={universitiesLoading}
+                    >
+                      <SelectTrigger id="university" className={selectTriggerClassName}>
+                        <SelectValue
+                          placeholder={
+                            universitiesLoading
+                              ? "Carregando universidades..."
+                              : uniqueUniversityNames.length === 0
+                                ? "Nenhuma universidade encontrada"
+                                : "Selecione sua universidade"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-edu border-edu-outline-soft bg-edu-lowest">
+                        {uniqueUniversityNames.length > 0 ? (
+                          uniqueUniversityNames.map((nomeUniversidade) => (
+                            <SelectItem key={nomeUniversidade} value={nomeUniversidade}>
+                              {nomeUniversidade}
                             </SelectItem>
                           ))
-                      ) : (
-                        <SelectItem value="no-data" disabled>
-                          Selecione uma universidade primeiro
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="course" className="text-sm font-medium">
-                  Curso de Graduação ({availableCourses.length} disponíveis)
-                </Label>
-                <div className="relative">
-                  <BookOpen className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
-                  <Select
-                    value={formData.course}
-                    onValueChange={(value) => {
-                      console.log("🎓 Course selected:", value)
-                      setFormData({ ...formData, course: value })
-                    }}
-                    disabled={cursosLoading || !formData.university || !formData.city}
-                  >
-                    <SelectTrigger className="pl-10">
-                      <SelectValue
-                        placeholder={
-                          !formData.university || !formData.city
-                            ? "Selecione universidade e cidade primeiro"
-                            : cursosLoading
-                              ? "Carregando cursos..."
-                              : availableCourses.length === 0
-                                ? "Nenhum curso encontrado para esta combinação"
-                                : "Selecione seu curso"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableCourses.length > 0 ? (
-                        availableCourses.map((curso) => (
-                          <SelectItem key={curso.id} value={String(curso.nome)}>
-                            {String(curso.nome)}
+                        ) : (
+                          <SelectItem value="no-data" disabled>
+                            {universitiesLoading ? "Carregando..." : "Nenhuma universidade encontrada"}
                           </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-data" disabled>
-                          {!formData.university || !formData.city
-                            ? "Selecione universidade e cidade primeiro"
-                            : cursosLoading
-                              ? "Carregando..."
-                              : "Nenhum curso encontrado para esta combinação"}
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {universitiesError && <p className="text-sm text-red-600">{String(universitiesError)}</p>}
                 </div>
-                {cursosError && <p className="text-sm text-red-600">{String(cursosError)}</p>}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Senha
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="pl-10"
-                    required
-                    minLength={6}
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="city" className="ml-1 text-sm font-semibold text-edu-ink-muted">
+                    Cidade / polo
+                    <span className="ml-1 font-normal text-edu-outline">
+                      (
+                      {formData.university
+                        ? validUniversidades.filter((u) => String(u.nome) === formData.university).length
+                        : 0}
+                      )
+                    </span>
+                  </Label>
+                  <div className="group relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-4">
+                      <BookOpen className="h-5 w-5 text-edu-outline transition-colors group-focus-within:text-edu-primary" />
+                    </div>
+                    <Select
+                      value={formData.city}
+                      onValueChange={(value) => setFormData({ ...formData, city: value, course: "" })}
+                      disabled={universitiesLoading || !formData.university}
+                    >
+                      <SelectTrigger id="city" className={selectTriggerClassName}>
+                        <SelectValue
+                          placeholder={
+                            !formData.university
+                              ? "Selecione uma universidade primeiro"
+                              : universitiesLoading
+                                ? "Carregando cidades..."
+                                : "Selecione sua cidade ou polo"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-edu border-edu-outline-soft bg-edu-lowest">
+                        {formData.university ? (
+                          validUniversidades
+                            .filter((u) => String(u.nome) === formData.university)
+                            .map((universidade) => (
+                              <SelectItem
+                                key={`${universidade.id}-${universidade.polo}`}
+                                value={String(universidade.polo)}
+                              >
+                                {String(universidade.polo)}
+                              </SelectItem>
+                            ))
+                        ) : (
+                          <SelectItem value="no-data" disabled>
+                            Selecione uma universidade primeiro
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirmar Senha
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="pl-10"
-                    required
-                    minLength={6}
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="course" className="ml-1 text-sm font-semibold text-edu-ink-muted">
+                    Curso de graduação
+                    <span className="ml-1 font-normal text-edu-outline">({availableCourses.length})</span>
+                  </Label>
+                  <div className="group relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-4">
+                      <BookOpen className="h-5 w-5 text-edu-outline transition-colors group-focus-within:text-edu-primary" />
+                    </div>
+                    <Select
+                      value={formData.course}
+                      onValueChange={(value) => setFormData({ ...formData, course: value })}
+                      disabled={cursosLoading || !formData.university || !formData.city}
+                    >
+                      <SelectTrigger id="course" className={selectTriggerClassName}>
+                        <SelectValue
+                          placeholder={
+                            !formData.university || !formData.city
+                              ? "Selecione universidade e polo primeiro"
+                              : cursosLoading
+                                ? "Carregando cursos..."
+                                : availableCourses.length === 0
+                                  ? "Nenhum curso para esta combinação"
+                                  : "Selecione seu curso"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-edu border-edu-outline-soft bg-edu-lowest">
+                        {availableCourses.length > 0 ? (
+                          availableCourses.map((curso) => (
+                            <SelectItem key={curso.id} value={String(curso.nome)}>
+                              {String(curso.nome)}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-data" disabled>
+                            {!formData.university || !formData.city
+                              ? "Selecione universidade e polo primeiro"
+                              : cursosLoading
+                                ? "Carregando..."
+                                : "Nenhum curso para esta combinação"}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {cursosError && <p className="text-sm text-red-600">{String(cursosError)}</p>}
                 </div>
-              </div>
-            </CardContent>
+              </>
+            )}
 
-            <CardFooter className="flex flex-col space-y-4">
-              <Button
+            {step === 2 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="ml-1 text-sm font-semibold text-edu-ink-muted">
+                    Senha
+                  </Label>
+                  <div className="group relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <Lock className="h-5 w-5 text-edu-outline transition-colors group-focus-within:text-edu-primary" />
+                    </div>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className={inputClassName}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="ml-1 text-sm font-semibold text-edu-ink-muted">
+                    Confirmar senha
+                  </Label>
+                  <div className="group relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <Lock className="h-5 w-5 text-edu-outline transition-colors group-focus-within:text-edu-primary" />
+                    </div>
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="Repita a senha"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      className={inputClassName}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+              {step > 0 ? (
+                <button
+                  type="button"
+                  onClick={goBack}
+                  disabled={blockActions}
+                  className="order-2 flex items-center justify-center gap-2 rounded-full border border-edu-outline-soft bg-transparent py-3.5 px-5 font-headline text-sm font-bold text-edu-ink-muted transition-colors hover:bg-edu-low disabled:opacity-50 sm:order-1 sm:justify-start"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Voltar
+                </button>
+              ) : (
+                <span className="hidden sm:block sm:w-[7.5rem]" aria-hidden />
+              )}
+
+              <button
                 type="submit"
-                className="w-full bg-green-600 hover:bg-green-700"
-                disabled={isLoading || universitiesLoading || cursosLoading}
+                disabled={blockActions}
+                className={`order-1 flex w-full items-center justify-center gap-2 rounded-full bg-academic-gradient py-4 px-6 font-headline text-lg font-bold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl active:scale-95 disabled:opacity-70 sm:order-2 sm:ml-auto sm:w-auto sm:min-w-[200px] ${isLastStep ? "group" : ""}`}
               >
-                {isLoading ? "Criando conta..." : "Criar Conta"}
-              </Button>
-
-              <div className="text-center text-sm text-gray-600">
-                Já tem uma conta?{" "}
-                <Link href="/" className="text-green-600 hover:text-green-800 font-medium">
-                  Fazer Login
-                </Link>
-              </div>
-            </CardFooter>
+                {isLastStep ? (
+                  <>
+                    {isLoading ? "Criando conta..." : "Criar conta"}
+                    {!isLoading && (
+                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    Continuar
+                    <ArrowRight className="h-5 w-5" />
+                  </>
+                )}
+              </button>
+            </div>
           </form>
 
-          {/* Debug info - remova em produção */}
-          <div className="p-4 bg-gray-100 text-xs">
-            <p>
-              <strong>Debug Info:</strong>
+          <footer className="mt-12 pb-8 text-center">
+            <p className="font-medium text-edu-ink-muted">
+              Já tem uma conta?{" "}
+              <Link href="/" className="ml-1 font-bold text-edu-primary underline-offset-4 hover:underline">
+                Fazer login
+              </Link>
             </p>
-            <p>Universidades: {validUniversidades.length}</p>
-            <p>Cursos: {validCursos.length}</p>
-            <p>Universidade selecionada: {formData.university || "Nenhuma"}</p>
-            <p>Cidade selecionada: {formData.city || "Nenhuma"}</p>
-            <p>Universidade encontrada: {selectedUniversidade ? `ID ${selectedUniversidade.id}` : "Não"}</p>
-            <p>Cursos disponíveis: {availableCourses.length}</p>
-            <p>
-              Loading: Unis={String(universitiesLoading)}, Cursos={String(cursosLoading)}
-            </p>
-            <p>Password: {formData.password ? "✓" : "✗"}</p>
-            <p>Confirm Password: {formData.confirmPassword ? "✓" : "✗"}</p>
-            <p>Passwords Match: {formData.password === formData.confirmPassword ? "✓" : "✗"}</p>
-            {availableCourses.length > 0 && (
-              <div>
-                <p>
-                  <strong>Cursos encontrados:</strong>
-                </p>
-                {availableCourses.map((curso) => (
-                  <p key={curso.id}>
-                    - {String(curso.nome)} (ID: {curso.id}, Univ ID:{" "}
-                    {typeof curso.universidade === "object" ? curso.universidade.id : curso.universidade})
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
-    </div>
+          </footer>
+        </div>
+
+        <div className="mt-auto flex shrink-0 items-center justify-between px-1 pb-6 text-[10px] font-bold uppercase tracking-widest text-edu-outline opacity-50">
+          <span>EduPlan Acadêmico</span>
+          <span>Privacidade e termos</span>
+        </div>
+      </section>
+    </main>
   )
 }
