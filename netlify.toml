@@ -1,0 +1,10 @@
+# Com base = "eduPlan", o publish é relativo a essa pasta → "out" = eduPlan/out na raiz do repo.
+# No painel Netlify: Publish directory vazio ou "out" — NÃO use "./" nem a raiz do repo.
+
+[build]
+  base = "eduPlan"
+  command = "npm run build"
+  publish = "out"
+
+[build.environment]
+  NODE_VERSION = "20"
