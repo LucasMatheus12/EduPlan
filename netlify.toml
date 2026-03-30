@@ -2,7 +2,7 @@
 # No painel Netlify: Publish directory vazio ou "out" — NÃO use "./" nem a raiz do repo.
 
 [build]
-  base = "eduPlan"
+  base = "EduPlan"
   command = "npm run build"
   publish = "out"
 
